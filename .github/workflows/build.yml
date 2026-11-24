@@ -1,0 +1,30 @@
+name: Build APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack projects
+        run: |
+          for z in *.zip; do [ -e "$z" ] && unzip -o "$z"; done
+          ls -la
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build all apps
+        run: |
+          mkdir -p out
+          for G in $(find . -name gradlew -not -path './out/*'); do
+            D=$(dirname "$G")
+            N=$(basename "$D")
+            echo "=== Building $N ==="
+            (cd "$D" && chmod +x gradlew && ./gradlew assembleDebug)
+            cp "$D"/app/build/outputs/apk/debug/*.apk "out/$N.apk"
+          done
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Apps
+          path: out/*.apk
